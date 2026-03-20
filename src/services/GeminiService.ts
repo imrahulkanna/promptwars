@@ -34,8 +34,8 @@ export const processCrisisInput = async (input: string): Promise<TriageData> => 
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Using gemini-1.5-flash as requested by system instructions
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Automatically upgraded to gemini-2.5-flash based on your API key's available models
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     try {
         const combinedPrompt = `${SYSTEM_PROMPT}\n\n=== MESSY INPUT ===\n${input}`;
