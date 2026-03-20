@@ -34,17 +34,27 @@ export const processCrisisInput = async (input: string): Promise<TriageData> => 
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Automatically upgraded to gemini-2.5-flash based on your API key's available models
+    // Model explicitly targeting 2.5 flash for max efficiency
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    try {
-        const combinedPrompt = `${SYSTEM_PROMPT}\n\n=== MESSY INPUT ===\n${input}`;
+    // Basic Input Sanitization (XSS Protection for "messy text")
+    const sanitizedInput = input
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/{/g, "&#123;")
+        .replace(/}/g, "&#125;");
 
-        // Attempting completion using the latest generation SDK
+    // Short input validation
+    if (sanitizedInput.trim().length < 5) {
+         throw new Error("Input too short to analyze. Please provide more details about the emergency.");
+    }
+
+    try {
+        const combinedPrompt = `${SYSTEM_PROMPT}\n\n=== MESSY INPUT ===\n${sanitizedInput}`;
+
         const result = await model.generateContent(combinedPrompt);
         const textResponse = result.response.text();
 
-        // Ensure we parse even if occasionally getting markdown blocks
         const cleanedJson = textResponse
             .replace(/^\s*```[a-z]*\n/, "")
             .replace(/\n```\s*$/, "")
@@ -52,9 +62,28 @@ export const processCrisisInput = async (input: string): Promise<TriageData> => 
 
         return JSON.parse(cleanedJson) as TriageData;
     } catch (error) {
-        console.error("Gemini Parsing Error:", error);
-        throw new Error(
-            "Failed to parse triage data. The AI might have returned malformed data or API key is invalid.",
-        );
+        console.error("Gemini Parsing/API Error:", error);
+        
+        // Fallback UI/Data if the API fails or returns invalid JSON
+        return {
+            severity_score: 10,
+            incident_type: "Unknown Critical Emergency",
+            patient_status: "Unconfirmed - Treat as Critical",
+            action_steps: [
+                "Ensure scene safety before approaching.",
+                "Call 911 or local emergency services immediately.",
+                "Do not move the patient unless they are in immediate danger.",
+                "Stay with the patient until help arrives."
+            ],
+            priority: "Critical",
+            summary: "Automated analysis failed. Defaulting to critical emergency protocols. Manual triage required.",
+            vitals_detected: ["unknown"],
+            immediate_actions: ["Call 911", "Ensure Safety"],
+            hospital_payload: {
+                type: "Unknown trauma/medical event",
+                severity: 10,
+                eta_requirement: "Immediate"
+            }
+        };
     }
 };
