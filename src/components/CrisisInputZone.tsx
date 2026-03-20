@@ -1,5 +1,5 @@
 import React from "react";
-import { ShieldAlert, AlertTriangle, RefreshCw, Cpu, TestTube } from "lucide-react";
+import { ShieldAlert, AlertTriangle, RefreshCw, Cpu } from "lucide-react";
 
 interface CrisisInputZoneProps {
     input: string;
